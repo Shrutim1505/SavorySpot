@@ -1,47 +1,35 @@
-import { createContext, useEffect, useState } from "react";
+import { createContext, useState } from "react";
 import { food_list } from "../assets/assets";
 
 export const StoreContext = createContext(null);
 
-const StoreContextProvider = (props) => {
+const StoreContextProvider = ({ children }) => {
   const [cartItems, setCartItems] = useState({});
 
   const addToCart = (itemId) => {
-    if (!cartItems[itemId]) {
-      setCartItems((prev) => ({ ...prev, [itemId]: 1 }));
-    } else {
-      setCartItems((prev) => ({ ...prev, [itemId]: prev[itemId] + 1 }));
-    }
+    setCartItems((prev) => ({ ...prev, [itemId]: (prev[itemId] || 0) + 1 }));
   };
 
   const removeFromCart = (itemId) => {
-    if (cartItems[itemId] === 1) {
-      // Remove the item if the quantity becomes zero
-      const newCartItems = { ...cartItems };
-      delete newCartItems[itemId];
-      setCartItems(newCartItems);
-    } else {
-      setCartItems((prev) => ({ ...prev, [itemId]: prev[itemId] - 1 }));
-    }
+    setCartItems((prev) => {
+      const newCartItems = { ...prev };
+      if (newCartItems[itemId] === 1) {
+        delete newCartItems[itemId];
+      } else {
+        newCartItems[itemId] -= 1;
+      }
+      return newCartItems;
+    });
   };
 
-  const getTotalQuantity = () => {
-    let totalQuantity = 0;
-    for (const itemId in cartItems) {
-      totalQuantity += cartItems[itemId];
-    }
-    return totalQuantity;
-  };
+  const getTotalQuantity = () => 
+    Object.values(cartItems).reduce((acc, quantity) => acc + quantity, 0);
 
   const getTotalCartAmount = () => {
-    let totalAmount = 0;
-    for (const item in cartItems) {
-      if (cartItems[item] > 0) {
-        let itemInfo = food_list.find((product) => product._id === item);
-        totalAmount += itemInfo.price * cartItems[item];
-      }
-    }
-    return totalAmount;
+    return Object.entries(cartItems).reduce((total, [itemId, quantity]) => {
+      const itemInfo = food_list.find((product) => product._id === itemId);
+      return itemInfo ? total + itemInfo.price * quantity : total;
+    }, 0);
   };
 
   const contextValue = {
@@ -56,7 +44,7 @@ const StoreContextProvider = (props) => {
 
   return (
     <StoreContext.Provider value={contextValue}>
-      {props.children}
+      {children}
     </StoreContext.Provider>
   );
 };
